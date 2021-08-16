@@ -44,7 +44,11 @@ function App() {
       const maximumYear = 2021;
 
       for (let year = minimumYear; year <= maximumYear; year++) {
-        const url = `https://push.api.bbci.co.uk/batch?t=%2Fdata%2Fbbc-morph-football-scores-match-list-data%2FendDate%2F${year + 1}-07-31%2FstartDate%2F${year}-08-01%2Fteam%2F${teamName}%2FtodayDate%2F2021-08-15%2Fversion%2F2.4.6?timeout=5`;
+        const startDateISO = `${year}-08-01`;
+        const endDateISO = `${year + 1}-07-31`;
+        const todayISO = new Date().toISOString().substr(0, 10);
+
+        const url = `https://push.api.bbci.co.uk/batch?t=%2Fdata%2Fbbc-morph-football-scores-match-list-data%2FendDate%2F${endDateISO}%2FstartDate%2F${startDateISO}%2Fteam%2F${teamName}%2FtodayDate%2F${todayISO}%2Fversion%2F2.4.6?timeout=5`;
 
         const responseJson = await fetch(url);
         const responseFootballScoresMatchListData: FootballScoresMatchListData = await responseJson.json();
