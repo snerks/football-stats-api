@@ -3,8 +3,8 @@ import './App.css';
 import PointsLineChart, { PointsPerYear } from './components/points-line-chart';
 import { FootballScoresMatchListData, TournamentDatesWithEvents, Event, Team } from './models/football-scores-match-list';
 
-const teamNameFull = "Millwall";
-const teamName = "millwall";
+const teamNameFull = "Bristol City";
+const teamName = "bristol-city";
 
 const getEventPoints = (event: Event) => {
   const team: Team = event.homeTeam.name.full === teamNameFull ? event.homeTeam : event.awayTeam;
@@ -53,7 +53,7 @@ function App() {
         // setFootballScoresMatchListData(responseFootballScoresMatchListData);
         // setTournamentDatesWithEvents(responseFootballScoresMatchListData?.payload[0].body.matchData[0].tournamentDatesWithEvents);
 
-        const leagueEvents: Event[] = [];
+        const leagueEventsTemp: Event[] = [];
 
         const leagueNames = [
           "premier-league",
@@ -65,14 +65,17 @@ function App() {
         if (tournamentDatesWithEvents) {
           responseFootballScoresMatchListData.payload[0].body.matchData.forEach(matchDataItem => {
             Object.keys(matchDataItem.tournamentDatesWithEvents).forEach(key => matchDataItem.tournamentDatesWithEvents[key][0].events.forEach(ev => {
+              if (leagueNames.indexOf(ev.tournamentSlug) === -1 && ev.eventProgress.status === "RESULT") {
+                console.warn(ev.tournamentSlug);
+              }
               if (leagueNames.indexOf(ev.tournamentSlug) > -1 && ev.eventProgress.status === "RESULT") {
-                leagueEvents.push(ev);
+                leagueEventsTemp.push(ev);
               }
             }));
           });
         }
 
-        leagueEvents.sort((a: Event, b: Event) => {
+        leagueEventsTemp.sort((a: Event, b: Event) => {
           if (a.startTime < b.startTime) {
             return -1;
           }
@@ -83,10 +86,10 @@ function App() {
           return 0;
         });
 
-        setLeagueEvents(leagueEvents);
+        setLeagueEvents(leagueEventsTemp);
 
         // setPoints2020(leagueEvents.map(le => getEventPoints(le)));
-        pointsPerYear[year] = leagueEvents.map(le => getEventPoints(le));
+        pointsPerYear[year] = leagueEventsTemp.map(le => getEventPoints(le));
         pointsPerYear[year].unshift(0);
       }
 
@@ -100,19 +103,7 @@ function App() {
   }, []);
 
   return (
-    // <div className="App">
     <div>
-      {/* <PointsLineChart
-        pointsPerYear={{
-          2016: points2020,
-          2017: points2020,
-          2018: points2020,
-          2019: points2020,
-          2020: points2020,
-          2021: points2020,
-        }}
-      /> */}
-
       {pointsPerYear &&
         <PointsLineChart
           pointsPerYear={pointsPerYear}
@@ -120,31 +111,6 @@ function App() {
       }
 
       <div>
-        {/* <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header> */}
-        {/* <ul>
-        {Object.keys(footballScoresMatchListData?.payload[0].body.matchData[0].tournamentDatesWithEvents!).map(key => key)}
-      </ul> */}
-
-        {/* {footballScoresMatchListData?.payload[0].body.matchData[0].tournamentDatesWithEvents && <div>tournamentDatesWithEvents is defined</div>} */}
-        {/* <pre>{JSON.stringify(Object.keys(footballScoresMatchListData?.payload[0].body.matchData[0].tournamentDatesWithEvents!), null, 2)}</pre> */}
-        {/* <pre>{JSON.stringify(footballScoresMatchListData?.payload[0].body.matchData[0].tournamentDatesWithEvents, null, 2)}</pre> */}
-        {/* {tournamentDatesWithEvents &&
-        Object.keys(tournamentDatesWithEvents).map(key => <li>{key}<pre>{JSON.stringify(tournamentDatesWithEvents[key][0].events, null, 2)}</pre></li>)
-      } */}
-
         {/* {points2020 &&
           <pre>{JSON.stringify(points2020, null, 2)}</pre>
         } */}
@@ -157,7 +123,6 @@ function App() {
             }
           </ul> */}
       </div>
-
     </div>
   );
 }
