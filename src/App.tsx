@@ -2,9 +2,14 @@ import React, { useEffect, useState } from 'react';
 import './App.css';
 import PointsLineChart, { PointsPerYear } from './components/points-line-chart';
 import { FootballScoresMatchListData, TournamentDatesWithEvents, Event, Team } from './models/football-scores-match-list';
+import { AbbrLink, SportsTableData } from './models/sports-table-data';
 
-const teamNameFull = "Bristol City";
-const teamName = "bristol-city";
+// const competitionNameFull = "Championship";
+// const competitionName = "championship";
+// const teamNameFull = "Bristol City";
+// const teamName = "bristol-city";
+const teamNameFull = "Nottingham Forest";
+const teamName = "nottingham-forest";
 
 const getEventPoints = (event: Event) => {
   const team: Team = event.homeTeam.name.full === teamNameFull ? event.homeTeam : event.awayTeam;
@@ -35,6 +40,52 @@ function App() {
   const [pointsPerYear, setPointsPerYear] = useState<
     PointsPerYear | undefined
   >(undefined);
+
+  // teamNameLinkTextItems
+  const [teamNameLinkTextItems, setTeamNameLinkTextItems] = useState<
+    (string | undefined)[] | []
+  >([]);
+
+  // // https://push.api.bbci.co.uk/batch?t=/data/bbc-morph-sport-tables-data/competition/championship/sport/football/version/2.0.2?timeout=5
+  useEffect(() => {
+    const fetchSportsTableData = async () => {
+      const pointsPerYear: PointsPerYear = {};
+
+      const competitionNames = [
+        // "premier-league",
+        "championship",
+        // "league-one",
+        // "league-two",
+      ];
+
+      const allTeamNameAbbrLinks: (AbbrLink | undefined)[] = [];
+      const allTeamNameLinkTextItems: (string | undefined)[] = [];
+
+      for (let competitionNameIndex = 0; competitionNameIndex < competitionNames.length; competitionNameIndex++) {
+        const competitionName = competitionNames[competitionNameIndex];
+        const url = `https://push.api.bbci.co.uk/batch?t=/data/bbc-morph-sport-tables-data/competition/${competitionName}/sport/football/version/2.0.2?timeout=5`;
+
+        const responseJson = await fetch(url);
+        const responseSportsTableData: SportsTableData = await responseJson.json();
+        const teamRows = responseSportsTableData?.payload[0].body.sportTables.tables[0].rows;
+
+        const teamNameAbbrLinks = teamRows.map(teamRow => teamRow.cells[2].td.abbrLink); // .filter(i => i !== undefined);
+        const teamNameLinkTextItems = teamNameAbbrLinks.map(teamNameAbbrLink => teamNameAbbrLink!.link.split("/").slice(-1)[0]);
+
+        allTeamNameLinkTextItems.push(...teamNameLinkTextItems);
+      }
+
+      allTeamNameLinkTextItems.sort();
+      setTeamNameLinkTextItems(allTeamNameLinkTextItems);
+
+      // setPointsPerYear(pointsPerYear);
+
+      // setLoading(false);
+    };
+
+    fetchSportsTableData();
+
+  }, []);
 
   useEffect(() => {
     const fetchMatchListData = async () => {
@@ -108,6 +159,16 @@ function App() {
 
   return (
     <div>
+      {
+        teamNameLinkTextItems &&
+        // <ul>
+        //   {teamNameLinkTextItems.map(name => <li key={name}>{name}</li>)}
+        // </ul>
+        <select name="teamNameLinkTextItems" id="teamNameLinkTextItems">
+          {/* <option value="volvo">Volvo</option> */}
+          {teamNameLinkTextItems.map(name => <option key={name} value={name}>{name}</option>)}
+        </select>
+      }
       {pointsPerYear &&
         <PointsLineChart
           pointsPerYear={pointsPerYear}
