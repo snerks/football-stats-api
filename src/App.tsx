@@ -68,17 +68,18 @@ function App() {
     boolean
   >(false);
 
+  const competitionNames = [
+    "premier-league",
+    "championship",
+    "league-one",
+    "league-two",
+    "scottish-premiership"
+  ];
+
   // // https://push.api.bbci.co.uk/batch?t=/data/bbc-morph-sport-tables-data/competition/championship/sport/football/version/2.0.2?timeout=5
   useEffect(() => {
     const fetchSportsTableData = async () => {
       const pointsPerYear: PointsPerYear = {};
-
-      const competitionNames = [
-        "premier-league",
-        "championship",
-        "league-one",
-        "league-two",
-      ];
 
       const allTeamNameAbbrLinks: (AbbrLink | undefined)[] = [];
       const allTeamNameLinkTextItems: (string | undefined)[] = [];
@@ -157,8 +158,8 @@ function App() {
       const maximumYear = 2021;
 
       for (let year = minimumYear; year <= maximumYear; year++) {
-        const startDateISO = `${year}-08-01`;
-        const endDateISO = `${year + 1}-07-31`;
+        const startDateISO = `${year}-07-31`; // Was 08-01 - Scottish football started on 31 July
+        const endDateISO = `${year + 1}-07-30`;
         const todayISO = new Date().toISOString().substr(0, 10);
 
         const url = `https://push.api.bbci.co.uk/batch?t=%2Fdata%2Fbbc-morph-football-scores-match-list-data%2FendDate%2F${endDateISO}%2FstartDate%2F${startDateISO}%2Fteam%2F${selectedTeamNameInfoItem.linkText}%2FtodayDate%2F${todayISO}%2Fversion%2F2.4.6?timeout=5`;
@@ -172,12 +173,7 @@ function App() {
 
         const leagueEventsTemp: Event[] = [];
 
-        const leagueNames = [
-          "premier-league",
-          "championship",
-          "league-one",
-          "league-two",
-        ]
+        const leagueNames = competitionNames;
 
         if (tournamentDatesWithEvents) {
           responseFootballScoresMatchListData.payload[0].body.matchData.forEach(matchDataItem => {
