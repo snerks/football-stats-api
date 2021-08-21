@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import logo from './logo.svg';
 import './App.css';
 import PointsLineChart, { PointsPerYear } from './components/points-line-chart';
 import { FootballScoresMatchListData, TournamentDatesWithEvents, Event, Team } from './models/football-scores-match-list';
@@ -63,16 +64,20 @@ function App() {
     TeamNameInfo
   >(defaultTeamNameInfo);
 
+  const [loading, setLoading] = useState<
+    boolean
+  >(false);
+
   // // https://push.api.bbci.co.uk/batch?t=/data/bbc-morph-sport-tables-data/competition/championship/sport/football/version/2.0.2?timeout=5
   useEffect(() => {
     const fetchSportsTableData = async () => {
       const pointsPerYear: PointsPerYear = {};
 
       const competitionNames = [
-        // "premier-league",
+        "premier-league",
         "championship",
-        // "league-one",
-        // "league-two",
+        "league-one",
+        "league-two",
       ];
 
       const allTeamNameAbbrLinks: (AbbrLink | undefined)[] = [];
@@ -144,6 +149,8 @@ function App() {
 
   useEffect(() => {
     const fetchMatchListData = async () => {
+      setLoading(true);
+
       const pointsPerYear: PointsPerYear = {};
 
       const minimumYear = 2016;
@@ -196,7 +203,7 @@ function App() {
           return 0;
         });
 
-        setLeagueEvents(leagueEventsTemp);
+        // setLeagueEvents(leagueEventsTemp);
 
         // setPoints2020(leagueEvents.map(le => getEventPoints(le)));
         pointsPerYear[year] = leagueEventsTemp.map(le => getEventPoints(le));
@@ -205,7 +212,7 @@ function App() {
 
       setPointsPerYear(pointsPerYear);
 
-      // setLoading(false);
+      setLoading(false);
     };
 
     fetchMatchListData();
@@ -237,10 +244,21 @@ function App() {
       }
       {/* <pre>{JSON.stringify(selectedTeamNameInfoItem, null, 2)}</pre> */}
 
-      {pointsPerYear &&
+      {
+        pointsPerYear && !loading &&
         <PointsLineChart
           pointsPerYear={pointsPerYear}
         />
+      }
+
+      {
+        !pointsPerYear || loading &&
+        // <p>
+        //   Loading...
+        // </p>
+        <div style={{ display: 'flex', justifyContent: "center", alignItems: "center", height: "400px", border: "3px solid white" }}>
+          <img src={logo} className="App-logo" alt="logo" />
+        </div>
       }
 
       <div>
