@@ -79,7 +79,7 @@ function App() {
   // // https://push.api.bbci.co.uk/batch?t=/data/bbc-morph-sport-tables-data/competition/championship/sport/football/version/2.0.2?timeout=5
   useEffect(() => {
     const fetchSportsTableData = async () => {
-      const pointsPerYear: PointsPerYear = {};
+      // const pointsPerYear: PointsPerYear = {};
 
       const allTeamNameAbbrLinks: (AbbrLink | undefined)[] = [];
       const allTeamNameLinkTextItems: (string | undefined)[] = [];
@@ -107,7 +107,6 @@ function App() {
         const linkText = teamNameAbbrLink.link.split("/").slice(-1)[0];
 
         return {
-
           linkText,
           fullName: teamNameAbbrLink.text
         }
@@ -173,7 +172,8 @@ function App() {
 
         const leagueEventsTemp: Event[] = [];
 
-        const leagueNames = competitionNames;
+        const leagueNames = [...competitionNames];
+        leagueNames.push("national-league");
 
         if (tournamentDatesWithEvents) {
           responseFootballScoresMatchListData.payload[0].body.matchData.forEach(matchDataItem => {
