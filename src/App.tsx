@@ -236,11 +236,12 @@ function App() {
         // <ul>
         //   {teamNameLinkTextItems.map(name => <li key={name}>{name}</li>)}
         // </ul>
-        <select name="teamNameInfoItems" id="teamNameInfoItems" onChange={handleSelectedTeamChange}>
-          {/* <option value="volvo">Volvo</option> */}
-          {teamNameInfoItems.map(i => <option key={i?.linkText || 1} value={i?.linkText} selected={i?.linkText == selectedTeamNameInfoItem.linkText}>{i?.fullName}</option>)}
-        </select>
-
+        <div style={{ textAlign: "center" }}>
+          <select name="teamNameInfoItems" id="teamNameInfoItems" onChange={handleSelectedTeamChange} style={{ fontSize: "20pt" }}>
+            {/* <option value="volvo">Volvo</option> */}
+            {teamNameInfoItems.map(i => <option key={i?.linkText || 1} value={i?.linkText} selected={i?.linkText == selectedTeamNameInfoItem.linkText}>{i?.fullName}</option>)}
+          </select>
+        </div>
       }
       {/* <pre>{JSON.stringify(selectedTeamNameInfoItem, null, 2)}</pre> */}
 
