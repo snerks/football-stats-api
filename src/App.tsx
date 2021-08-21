@@ -4,22 +4,31 @@ import PointsLineChart, { PointsPerYear } from './components/points-line-chart';
 import { FootballScoresMatchListData, TournamentDatesWithEvents, Event, Team } from './models/football-scores-match-list';
 import { AbbrLink, SportsTableData } from './models/sports-table-data';
 
+type TeamNameInfo = {
+  linkText: string;
+  fullName: string;
+}
+
 // const competitionNameFull = "Championship";
 // const competitionName = "championship";
 // const teamNameFull = "Bristol City";
 // const teamName = "bristol-city";
-const teamNameFull = "Nottingham Forest";
-const teamName = "nottingham-forest";
 
-const getEventPoints = (event: Event) => {
-  const team: Team = event.homeTeam.name.full === teamNameFull ? event.homeTeam : event.awayTeam;
+const defaultTeamNameInfo: TeamNameInfo = {
+  linkText: "bristol-city",
+  fullName: "Bristol City"
+};
 
-  const points = team.eventOutcome === "loss" ? 0 : team.eventOutcome === "win" ? 3 : 1;
-
-  return points;
-}
+// const teamNameInfo: TeamNameInfo = defaultTeamNameInfo;
 
 function App() {
+  const getEventPoints = (event: Event) => {
+    const team: Team = event.homeTeam.name.full === selectedTeamNameInfoItem.fullName ? event.homeTeam : event.awayTeam;
+
+    const points = team.eventOutcome === "loss" ? 0 : team.eventOutcome === "win" ? 3 : 1;
+
+    return points;
+  }
 
   // const [footballScoresMatchListData, setFootballScoresMatchListData] = useState<
   //   FootballScoresMatchListData | undefined
@@ -45,6 +54,14 @@ function App() {
   const [teamNameLinkTextItems, setTeamNameLinkTextItems] = useState<
     (string | undefined)[] | []
   >([]);
+
+  const [teamNameInfoItems, setTeamNameInfoItems] = useState<
+    (TeamNameInfo | undefined)[] | []
+  >([]);
+
+  const [selectedTeamNameInfoItem, setSelectedTeamNameInfoItem] = useState<
+    TeamNameInfo
+  >(defaultTeamNameInfo);
 
   // // https://push.api.bbci.co.uk/batch?t=/data/bbc-morph-sport-tables-data/competition/championship/sport/football/version/2.0.2?timeout=5
   useEffect(() => {
@@ -72,11 +89,49 @@ function App() {
         const teamNameAbbrLinks = teamRows.map(teamRow => teamRow.cells[2].td.abbrLink); // .filter(i => i !== undefined);
         const teamNameLinkTextItems = teamNameAbbrLinks.map(teamNameAbbrLink => teamNameAbbrLink!.link.split("/").slice(-1)[0]);
 
+        allTeamNameAbbrLinks.push(...teamNameAbbrLinks);
         allTeamNameLinkTextItems.push(...teamNameLinkTextItems);
       }
 
+      const allTeamNameInfoItems: (TeamNameInfo | undefined)[] = allTeamNameAbbrLinks.map(teamNameAbbrLink => {
+        if (teamNameAbbrLink === undefined) {
+          return undefined;
+        }
+
+        const linkText = teamNameAbbrLink.link.split("/").slice(-1)[0];
+
+        return {
+
+          linkText,
+          fullName: teamNameAbbrLink.text
+        }
+      });
+
       allTeamNameLinkTextItems.sort();
       setTeamNameLinkTextItems(allTeamNameLinkTextItems);
+
+      const allTeamNameInfoItemsDefined = allTeamNameInfoItems.filter(i => i !== undefined);
+
+      allTeamNameInfoItemsDefined.sort((a: TeamNameInfo | undefined, b: TeamNameInfo | undefined) => {
+        if (a === undefined) {
+          return 0;
+        }
+
+        if (b === undefined) {
+          return 0;
+        }
+
+        if (a.fullName < b.fullName) {
+          return -1;
+        }
+        if (a.fullName > b.fullName) {
+          return 1;
+        }
+        // a must be equal to b
+        return 0;
+      });
+
+      setTeamNameInfoItems(allTeamNameInfoItemsDefined);
 
       // setPointsPerYear(pointsPerYear);
 
@@ -99,7 +154,7 @@ function App() {
         const endDateISO = `${year + 1}-07-31`;
         const todayISO = new Date().toISOString().substr(0, 10);
 
-        const url = `https://push.api.bbci.co.uk/batch?t=%2Fdata%2Fbbc-morph-football-scores-match-list-data%2FendDate%2F${endDateISO}%2FstartDate%2F${startDateISO}%2Fteam%2F${teamName}%2FtodayDate%2F${todayISO}%2Fversion%2F2.4.6?timeout=5`;
+        const url = `https://push.api.bbci.co.uk/batch?t=%2Fdata%2Fbbc-morph-football-scores-match-list-data%2FendDate%2F${endDateISO}%2FstartDate%2F${startDateISO}%2Fteam%2F${selectedTeamNameInfoItem.linkText}%2FtodayDate%2F${todayISO}%2Fversion%2F2.4.6?timeout=5`;
 
         const responseJson = await fetch(url);
         const responseFootballScoresMatchListData: FootballScoresMatchListData = await responseJson.json();
@@ -155,7 +210,17 @@ function App() {
 
     fetchMatchListData();
 
-  }, []);
+  }, [selectedTeamNameInfoItem]);
+
+  const handleSelectedTeamChange = (event: any) => {
+    const linkText = event.target.value;
+    const nextItem: TeamNameInfo = {
+      linkText,
+      fullName: teamNameInfoItems.find(i => i?.linkText == linkText)?.fullName || "NA"
+    };
+
+    setSelectedTeamNameInfoItem(nextItem);
+  }
 
   return (
     <div>
@@ -164,11 +229,14 @@ function App() {
         // <ul>
         //   {teamNameLinkTextItems.map(name => <li key={name}>{name}</li>)}
         // </ul>
-        <select name="teamNameLinkTextItems" id="teamNameLinkTextItems">
+        <select name="teamNameInfoItems" id="teamNameInfoItems" onChange={handleSelectedTeamChange}>
           {/* <option value="volvo">Volvo</option> */}
-          {teamNameLinkTextItems.map(name => <option key={name} value={name}>{name}</option>)}
+          {teamNameInfoItems.map(i => <option key={i?.linkText || 1} value={i?.linkText} selected={i?.linkText == selectedTeamNameInfoItem.linkText}>{i?.fullName}</option>)}
         </select>
+
       }
+      {/* <pre>{JSON.stringify(selectedTeamNameInfoItem, null, 2)}</pre> */}
+
       {pointsPerYear &&
         <PointsLineChart
           pointsPerYear={pointsPerYear}
