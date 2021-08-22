@@ -82,6 +82,7 @@ export enum EventOutcome {
   Loss = "loss",
   Tie = "tie",
   Win = "win",
+  Undecided = "undecided",
 }
 
 export interface Name {

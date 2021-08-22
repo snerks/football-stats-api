@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import logo from './logo.svg';
 import './App.css';
 import PointsLineChart, { PointsPerYear } from './components/points-line-chart';
-import { FootballScoresMatchListData, TournamentDatesWithEvents, Event, Team } from './models/football-scores-match-list';
+import { FootballScoresMatchListData, Event, Team } from './models/football-scores-match-list';
 import { AbbrLink, SportsTableData } from './models/sports-table-data';
 
 type TeamNameInfo = {
@@ -20,17 +20,17 @@ const defaultTeamNameInfo: TeamNameInfo = {
   fullName: "Bristol City"
 };
 
+const competitionNames = [
+  "premier-league",
+  "championship",
+  "league-one",
+  "league-two",
+  "scottish-premiership"
+];
+
 // const teamNameInfo: TeamNameInfo = defaultTeamNameInfo;
 
 function App() {
-  const getEventPoints = (event: Event) => {
-    const team: Team = event.homeTeam.name.full === selectedTeamNameInfoItem.fullName ? event.homeTeam : event.awayTeam;
-
-    const points = team.eventOutcome === "loss" ? 0 : team.eventOutcome === "win" ? 3 : 1;
-
-    return points;
-  }
-
   // const [footballScoresMatchListData, setFootballScoresMatchListData] = useState<
   //   FootballScoresMatchListData | undefined
   // >(undefined);
@@ -39,9 +39,9 @@ function App() {
   //   TournamentDatesWithEvents | undefined
   // >(undefined);
 
-  const [leagueEvents, setLeagueEvents] = useState<
-    Event[] | undefined
-  >(undefined);
+  // const [leagueEvents, setLeagueEvents] = useState<
+  //   Event[] | undefined
+  // >(undefined);
 
   // const [points2020, setPoints2020] = useState<
   //   number[]
@@ -67,14 +67,6 @@ function App() {
   const [loading, setLoading] = useState<
     boolean
   >(false);
-
-  const competitionNames = [
-    "premier-league",
-    "championship",
-    "league-one",
-    "league-two",
-    "scottish-premiership"
-  ];
 
   // // https://push.api.bbci.co.uk/batch?t=/data/bbc-morph-sport-tables-data/competition/championship/sport/football/version/2.0.2?timeout=5
   useEffect(() => {
@@ -138,8 +130,6 @@ function App() {
 
       setTeamNameInfoItems(allTeamNameInfoItemsDefined);
 
-      // setPointsPerYear(pointsPerYear);
-
       // setLoading(false);
     };
 
@@ -151,21 +141,52 @@ function App() {
     const fetchMatchListData = async () => {
       setLoading(true);
 
+      const getEventPoints = (event: Event) => {
+        const team: Team = event.homeTeam.name.full === selectedTeamNameInfoItem.fullName ? event.homeTeam : event.awayTeam;
+        const otherTeam: Team = event.homeTeam.name.full !== selectedTeamNameInfoItem.fullName ? event.homeTeam : event.awayTeam;
+
+        if (event.eventProgress.status === "LIVE") {
+          // console.warn(JSON.stringify(team, null, 2));
+          const teamScore = team.scores.score;
+          const otherTeamScore = otherTeam.scores.score;
+
+          if (teamScore < otherTeamScore) {
+            return 0;
+          }
+
+          if (teamScore > otherTeamScore) {
+            return 3;
+          }
+
+          return 1;
+        }
+
+        const points = team.eventOutcome === "loss" ? 0 : team.eventOutcome === "win" ? 3 : 1;
+
+        return points;
+      }
+
       const pointsPerYear: PointsPerYear = {};
 
       const minimumYear = 2016;
       const maximumYear = 2021;
 
-      for (let year = minimumYear; year <= maximumYear; year++) {
+      for (let year = maximumYear; year >= minimumYear; year--) {
         const startDateISO = `${year}-07-31`; // Was 08-01 - Scottish football started on 31 July
         const endDateISO = `${year + 1}-07-30`;
         const todayISO = new Date().toISOString().substr(0, 10);
 
-        const url = `https://push.api.bbci.co.uk/batch?t=%2Fdata%2Fbbc-morph-football-scores-match-list-data%2FendDate%2F${endDateISO}%2FstartDate%2F${startDateISO}%2Fteam%2F${selectedTeamNameInfoItem.linkText}%2FtodayDate%2F${todayISO}%2Fversion%2F2.4.6?timeout=5`;
+        const tValue = `%2Fdata%2Fbbc-morph-football-scores-match-list-data%2FendDate%2F${endDateISO}%2FstartDate%2F${startDateISO}%2Fteam%2F${selectedTeamNameInfoItem.linkText}%2FtodayDate%2F${todayISO}%2Fversion%2F2.4.6?timeout=5`;
+        const url = `https://push.api.bbci.co.uk/batch?t=${tValue}`;
 
         const responseJson = await fetch(url);
-        const responseFootballScoresMatchListData: FootballScoresMatchListData = await responseJson.json();
-        const tournamentDatesWithEvents = responseFootballScoresMatchListData?.payload[0].body.matchData[0].tournamentDatesWithEvents;
+        const responseData = await responseJson.json();
+        const responseFootballScoresMatchListData: FootballScoresMatchListData = responseData as FootballScoresMatchListData;
+
+        const payloadItems = responseFootballScoresMatchListData?.payload;
+        const payloadItem = payloadItems && payloadItems.length > 0 ? payloadItems[0] : null;
+        const matchDataItems = payloadItem?.body?.matchData;
+        const tournamentDatesWithEvents = matchDataItems && matchDataItems.length > 0 ? matchDataItems[0]?.tournamentDatesWithEvents : null;
 
         // setFootballScoresMatchListData(responseFootballScoresMatchListData);
         // setTournamentDatesWithEvents(responseFootballScoresMatchListData?.payload[0].body.matchData[0].tournamentDatesWithEvents);
@@ -178,14 +199,35 @@ function App() {
         if (tournamentDatesWithEvents) {
           responseFootballScoresMatchListData.payload[0].body.matchData.forEach(matchDataItem => {
             Object.keys(matchDataItem.tournamentDatesWithEvents).forEach(key => matchDataItem.tournamentDatesWithEvents[key][0].events.forEach(ev => {
-              if (leagueNames.indexOf(ev.tournamentSlug) === -1 && ev.eventProgress.status === "RESULT") {
-                console.warn(ev.tournamentSlug);
+              if (leagueNames.indexOf(ev.tournamentSlug) === -1) {
+                console.warn(`${ev.tournamentSlug}`);
               }
-              if (leagueNames.indexOf(ev.tournamentSlug) > -1 && ev.eventProgress.status === "RESULT") {
+
+              if (ev.eventProgress.status !== "RESULT") {
+                // FIXTURE
+                // POSTPONED
+                // LIVE
+                console.warn(`${ev.tournamentSlug} : ${ev.eventProgress.status}`);
+              }
+
+              // if (ev.eventProgress.status === "LIVE") {
+              //   console.warn(`${JSON.stringify(ev)}`);
+              // }
+
+              if (leagueNames.indexOf(ev.tournamentSlug) > -1 && (ev.eventProgress.status === "RESULT" || ev.eventProgress.status === "LIVE")) {
+                // if (team.eventOutcome === "undecided") {
+                //   console.warn(JSON.stringify(team, null, 2));
+                // }
                 leagueEventsTemp.push(ev);
               }
             }));
           });
+        } else {
+          try {
+            console.warn(JSON.stringify(responseData, null, 2));
+          } catch (error) {
+            console.warn(error);
+          }
         }
 
         leagueEventsTemp.sort((a: Event, b: Event) => {
@@ -204,6 +246,11 @@ function App() {
         // setPoints2020(leagueEvents.map(le => getEventPoints(le)));
         pointsPerYear[year] = leagueEventsTemp.map(le => getEventPoints(le));
         pointsPerYear[year].unshift(0);
+
+        if (year === maximumYear - 1) {
+          setPointsPerYear(pointsPerYear);
+          setLoading(false);
+        }
       }
 
       setPointsPerYear(pointsPerYear);
@@ -219,7 +266,7 @@ function App() {
     const linkText = event.target.value;
     const nextItem: TeamNameInfo = {
       linkText,
-      fullName: teamNameInfoItems.find(i => i?.linkText == linkText)?.fullName || "NA"
+      fullName: teamNameInfoItems.find(i => i?.linkText === linkText)?.fullName || "NA"
     };
 
     setSelectedTeamNameInfoItem(nextItem);
@@ -233,9 +280,10 @@ function App() {
         //   {teamNameLinkTextItems.map(name => <li key={name}>{name}</li>)}
         // </ul>
         <div style={{ textAlign: "center" }}>
-          <select name="teamNameInfoItems" id="teamNameInfoItems" onChange={handleSelectedTeamChange} style={{ fontSize: "20pt" }}>
+          <select name="teamNameInfoItems" id="teamNameInfoItems" onChange={handleSelectedTeamChange} style={{ fontSize: "20pt" }} value={selectedTeamNameInfoItem.linkText}>
             {/* <option value="volvo">Volvo</option> */}
-            {teamNameInfoItems.map(i => <option key={i?.linkText || 1} value={i?.linkText} selected={i?.linkText == selectedTeamNameInfoItem.linkText}>{i?.fullName}</option>)}
+            {teamNameInfoItems.map(i => <option key={i?.linkText || 1} value={i?.linkText}>{i?.fullName}</option>)}
+            {/* {selected={i?.linkText == selectedTeamNameInfoItem.linkText}} */}
           </select>
         </div>
       }
@@ -249,7 +297,7 @@ function App() {
       }
 
       {
-        !pointsPerYear || loading &&
+        (!pointsPerYear || loading) &&
         // <p>
         //   Loading...
         // </p>

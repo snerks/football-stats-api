@@ -1,3 +1,4 @@
+import { ChartData, LineControllerChartOptions } from "chart.js";
 import * as React from "react";
 
 import { Line } from "react-chartjs-2";
@@ -46,6 +47,35 @@ const defaultState: PointsLineChartState = {
     2020: true,
     2021: true
   }
+}
+
+interface TooltipItemContext {
+  // The chart the tooltip is being shown on
+  chart: Chart
+
+  // Label for the tooltip
+  label: string,
+
+  // Parsed data values for the given `dataIndex` and `datasetIndex`
+  parsed: object,
+
+  // Raw data values for the given `dataIndex` and `datasetIndex`
+  raw: object,
+
+  // Formatted value for the tooltip
+  formattedValue: string,
+
+  // The dataset the item comes from
+  dataset: object
+
+  // Index of the dataset the item comes from
+  datasetIndex: number,
+
+  // Index of this data item in the dataset
+  dataIndex: number,
+
+  // The chart element (point, arc, bar, etc.) for this tooltip item
+  element: Element,
 }
 
 class PointsLineChart extends React.Component<
@@ -191,21 +221,35 @@ class PointsLineChart extends React.Component<
       if (Object.prototype.hasOwnProperty.call(pointsRunningTotalsPerYear, year)) {
         const yearElement = pointsRunningTotalsPerYear[year];
 
-        for (let index = 0; index < pointsPerYear[year].length; index++) {
-          const runningTotal = index === 0 ? 0 : yearElement[index - 1];
+        if (pointsPerYear[year]) {
+          for (let index = 0; index < pointsPerYear[year].length; index++) {
+            const runningTotal = index === 0 ? 0 : yearElement[index - 1];
 
-          const nextElement = runningTotal + pointsPerYear[year][index];
+            const nextElement = runningTotal + pointsPerYear[year][index];
 
-          yearElement.push(nextElement);
+            yearElement.push(nextElement);
+          }
         }
       }
     }
 
     // const dataPointCount = pointsPerYear[2016].length;
+    // const dataPointCount =
+    //   this.state.showAllDataPoints ?
+    //     pointsPerYear[2016].length :
+    //     Math.max(pointsPerYear[2021].length + 10, 12);
+
     const dataPointCount =
       this.state.showAllDataPoints ?
-        pointsPerYear[2016].length :
-        Math.max(pointsPerYear[2021].length + 10, 12);
+        Math.max(
+          pointsPerYear[2016]?.length || 0,
+          pointsPerYear[2017]?.length || 0,
+          pointsPerYear[2018]?.length || 0,
+          pointsPerYear[2019]?.length || 0,
+          pointsPerYear[2020]?.length || 0,
+          pointsPerYear[2021]?.length || 0
+        ) :
+        Math.max((pointsPerYear[2021]?.length || 0) + 10, 12);
 
     const labels: string[] = [];
 
@@ -304,6 +348,32 @@ class PointsLineChart extends React.Component<
 
     if (this.state.showYears[2021]) {
       if (chartData.datasets) {
+        // const dataChartPoints: Chart.ChartPoint[] = pointsRunningTotalsPerYear[2021].slice(0, dataPointCount).map(value => {
+        //   const result: Chart.ChartPoint = {
+        //     y: value,
+        //   };
+
+        //   const resultAny = result as any;
+        //   resultAny.customData = "Hello";
+
+        //   return resultAny;
+        // });
+
+        // const chartDataSet: Chart.ChartDataSets = {
+        //   ...defaultChartDataSet,
+        //   label: "2021-",
+        //   backgroundColor: redLegendFillColour,
+        //   borderColor: redLineColour,
+        //   pointBorderColor: redLineColour,
+        //   pointHoverBackgroundColor: redLineColour,
+        //   borderDash: [],
+        //   // data: pointsRunningTotalsPerYear[2021].slice(0, dataPointCount),
+
+        //   data: dataChartPoints,
+
+        //   borderWidth: 4
+        // }
+
         chartData.datasets.push({
           ...defaultChartDataSet,
           label: "2021-",
@@ -313,6 +383,8 @@ class PointsLineChart extends React.Component<
           pointHoverBackgroundColor: redLineColour,
           borderDash: [],
           data: pointsRunningTotalsPerYear[2021].slice(0, dataPointCount),
+
+          // data: dataChartPoints,
 
           borderWidth: 4
         });
@@ -355,12 +427,33 @@ class PointsLineChart extends React.Component<
           pointBorderColor: orangeLineColour,
           pointHoverBackgroundColor: orangeLineColour,
           borderDash: [5, 15],
-          data: relegationFormValues,
+          data: relegationFormValues
+          // data: relegationFormValues.map(value => ({
+          //   y: value,
+          //   customData: "Hello"
+          // })),
         });
       }
     }
 
-    const chartOptions = {
+    const chartTooltipCallback: any = {
+      label: (context: TooltipItemContext) => {
+        // var label = context.dataset.label || '';
+        var label = context.label || '';
+
+        if (label) {
+          label += `: ${context.raw}`;
+        }
+
+        // if (context.parsed.y !== null) {
+        //     label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
+        // }
+
+        return label;
+      }
+    }
+
+    const chartOptions: Chart.ChartOptions = {
       // responsive: true,
       maintainAspectRatio: false,
       scales: {
@@ -383,6 +476,27 @@ class PointsLineChart extends React.Component<
             }
           }
         ]
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: (context: TooltipItemContext) => {
+              var label = (context.dataset as any).label || '';
+              // var label = context.label || '';
+
+              if (label) {
+                label += `: ${context.raw}`;
+              }
+
+              // if (context.parsed.y !== null) {
+              //     label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
+              // }
+
+              return label;
+            }
+          }
+        }
+        // tooltip: chartTooltipCallback
       }
     };
 
@@ -452,6 +566,10 @@ class PointsLineChart extends React.Component<
         // width={600}
         // redraw={true}
         />
+
+        {false &&
+          <pre>{JSON.stringify(chartData, null, 2)}</pre>
+        }
       </div>
     );
   }
